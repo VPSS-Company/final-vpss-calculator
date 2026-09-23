@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VPSS Calculator</title>
+  
+  <!-- External Resources: FontAwesome Icons & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- External CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <header class="header">
+      <div class="logo-icon"><i class="fa-solid fa-calculator"></i></div>
+      <div class="title-area">
+        <h1>VPSS Calculator</h1>
+        <p>Calculate · Convert · Simplify</p>
+      </div>
+    </header>
+
+    <!-- Outer Rounded Edge Box Containing All 3 Options -->
+    <div class="outer-box">
+      <nav class="tabs-container">
+        <button class="tab-btn active" onclick="switchMode('basic')">
+          <i class="fa-solid fa-calculator"></i> Basic
+        </button>
+        <button class="tab-btn" onclick="switchMode('scientific')">
+          <i class="fa-solid fa-flask"></i> Scientific
+        </button>
+        <button class="tab-btn" onclick="switchMode('currency')">
+          <i class="fa-solid fa-money-bill-wave"></i> Currency Converter
+        </button>
+      </nav>
+
+      <main id="mainLayout" class="main-content has-history">
+        <div class="card" id="calculatorCard">
+          <div class="display" id="calcDisplay">
+            <div class="expression" id="expression">0</div>
+            <div class="current-value" id="currentVal">0</div>
+          </div>
+
+          <div id="keypadContainer"></div>
+        </div>
+
+        <div class="card history-panel" id="historyPanel">
+          <div class="history-header">
+            <h2><i class="fa-regular fa-clock"></i> History</h2>
+            <button class="clear-history-btn" onclick="clearHistory()">
+              <i class="fa-regular fa-trash-can"></i> Clear All
+            </button>
+          </div>
+          <ul class="history-list" id="historyList"></ul>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- External JavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>
