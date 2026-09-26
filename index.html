@@ -1,78 +1,612 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VPSS Calculator</title>
-        <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="stylesheet" href="style.css" />
-  <!-- FontAwesome for Icons -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-  />
-  <!-- Google Fonts: Inter -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Font: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              blue: '#2563eb',
+              hover: '#1d4ed8',
+              activeBg: '#2563eb',
+              inactiveBg: '#dbeafe',
+              inactiveText: '#1e40af',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom utility and reset rules for clean execution */
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Keypad button active press state animation */
+    .calc-btn {
+      transition: background-color 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .calc-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* Scrollbar styling for history panel */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #475569;
+    }
+  </style>
 </head>
-<body>
-  <div class="app-container">
-    <!-- Header -->
-    <header class="header">
-      <div class="logo-icon">
-        <i class="fa-solid fa-calculator"></i>
+
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex items-center justify-center p-3 sm:p-6 transition-colors duration-300">
+
+  <div class="w-full max-w-xl mx-auto flex flex-direction-col flex-col gap-4">
+
+    <!-- Header Section -->
+    <header class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 bg-blue-600 text-white rounded-xl flex items-center justify-center text-xl font-bold shadow-md shadow-blue-500/20 shrink-0">
+          <i class="fa-solid font-bold fa-calculator"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-900 dark:text-white leading-tight">VPSS Calculator</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Calculate · Convert · Simplify</p>
+        </div>
       </div>
-      <div class="title-area">
-        <h1>VPSS Calculator</h1>
-        <p>Calculate &bull; Convert &bull; Simplify</p>
-      </div>
+
+      <!-- Theme Toggle Button -->
+      <button id="themeToggleBtn" aria-label="Toggle Theme" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+        <i id="themeIcon" class="fa-solid fa-moon text-lg"></i>
+      </button>
     </header>
 
-    <!-- Outer Enclosing Box -->
-    <div class="outer-box">
-      <!-- Vertically Stacked Calculator Selector -->
-      <nav class="tabs-container">
-        <button class="tab-btn active" id="btnBasic" onclick="switchMode('basic')">
-          <i class="fa-solid fa-calculator"></i> Basic
+    <!-- Outer Box Container -->
+    <div class="bg-white dark:bg-slate-800 rounded-3xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700/80 shadow-xl shadow-slate-200/50 dark:shadow-none flex flex-col gap-5 w-full overflow-hidden">
+
+      <!-- Vertically Stacked Selector Tabs (3 options stacked top-to-bottom) -->
+      <nav class="flex flex-col gap-2.5 w-full" aria-label="Calculator Modes">
+        <button id="tab-basic" onclick="switchMode('basic')" class="mode-tab active w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2.5 shadow-md shadow-blue-600/25 transition-all text-sm sm:text-base">
+          <i class="fa-solid fa-calculator text-base"></i>
+          <span>Basic Calculator</span>
         </button>
-        <button class="tab-btn" id="btnScientific" onclick="switchMode('scientific')">
-          <i class="fa-solid fa-flask"></i> Scientific
+
+        <button id="tab-scientific" onclick="switchMode('scientific')" class="mode-tab w-full bg-blue-50 dark:bg-slate-700/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2.5 transition-all text-sm sm:text-base">
+          <i class="fa-solid fa-flask text-base"></i>
+          <span>Scientific Mode</span>
         </button>
-        <button class="tab-btn" id="btnCurrency" onclick="switchMode('currency')">
-          <i class="fa-solid fa-money-bill-transfer"></i> Currency Converter
+
+        <button id="tab-currency" onclick="switchMode('currency')" class="mode-tab w-full bg-blue-50 dark:bg-slate-700/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2.5 transition-all text-sm sm:text-base">
+          <i class="fa-solid fa-money-bill-transfer text-base"></i>
+          <span>Currency Converter</span>
         </button>
       </nav>
 
-      <!-- Main Layout -->
-      <main id="mainLayout" class="main-content has-history">
-        <!-- Calculator & Converter Card -->
-        <div class="card" id="calculatorCard">
-          <!-- Display Area (for Basic and Scientific) -->
-          <div class="display" id="calcDisplay">
-            <div class="expression" id="exprDisplay"></div>
-            <div class="current-value" id="currentDisplay">0</div>
-          </div>
-
-          <!-- Dynamic Keypad Container -->
-          <div id="keypadContainer"></div>
+      <!-- Display Panel for Calculator Modes (Basic & Scientific) -->
+      <div id="calculatorDisplayPanel" class="flex flex-col gap-3">
+        <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-right flex flex-col justify-between min-h-[100px] shadow-inner">
+          <div id="expressionDisplay" class="text-slate-500 dark:text-slate-400 text-sm font-medium min-h-[1.25rem] overflow-x-auto whitespace-nowrap scrollbar-none"></div>
+          <div id="resultDisplay" class="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white break-all tracking-tight leading-none mt-1">0</div>
         </div>
 
-        <!-- History Side Panel (Only visible in Basic mode) -->
-        <aside class="card history-panel" id="historyCard">
-          <div class="history-header">
-            <h2><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
-            <button class="clear-history-btn" onclick="clearHistory()">
-              <i class="fa-solid fa-trash-can"></i> Clear
+        <!-- History Toggle / Action Header -->
+        <div class="flex items-center justify-between px-1">
+          <button onclick="toggleHistoryPanel()" class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span id="historyToggleText">Show History</span>
+          </button>
+          <button onclick="clearCurrentEntry()" class="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition">
+            Clear Entry (CE)
+          </button>
+        </div>
+
+        <!-- History Panel Dropdown (Hidden by default) -->
+        <div id="historyPanel" class="hidden bg-slate-50 dark:bg-slate-900/80 rounded-xl p-3 border border-slate-200 dark:border-slate-700">
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-700">
+            <span class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Calculation History</span>
+            <button onclick="clearHistory()" class="text-xs text-rose-500 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-trash-can text-[10px]"></i> Clear
             </button>
           </div>
-          <ul class="history-list" id="historyList"></ul>
-        </aside>
-      </main>
+          <ul id="historyList" class="custom-scrollbar max-h-36 overflow-y-auto flex flex-col gap-1.5 text-xs">
+            <li class="text-slate-400 italic text-center py-2">No past calculations</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- BASIC KEYPAD -->
+      <div id="basicKeypad" class="grid grid-cols-4 gap-2 sm:gap-2.5">
+        <button onclick="handleClear()" class="calc-btn bg-rose-500 hover:bg-rose-600 text-white font-bold py-3.5 rounded-xl text-lg">C</button>
+        <button onclick="handleParentheses()" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3.5 rounded-xl text-lg">( )</button>
+        <button onclick="handleOp('%')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3.5 rounded-xl text-lg">%</button>
+        <button onclick="handleOp('/')" class="calc-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl text-lg">÷</button>
+
+        <button onclick="handleNum('7')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">7</button>
+        <button onclick="handleNum('8')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">8</button>
+        <button onclick="handleNum('9')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">9</button>
+        <button onclick="handleOp('*')" class="calc-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl text-lg">×</button>
+
+        <button onclick="handleNum('4')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">4</button>
+        <button onclick="handleNum('5')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">5</button>
+        <button onclick="handleNum('6')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">6</button>
+        <button onclick="handleOp('-')" class="calc-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl text-lg">−</button>
+
+        <button onclick="handleNum('1')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">1</button>
+        <button onclick="handleNum('2')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">2</button>
+        <button onclick="handleNum('3')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">3</button>
+        <button onclick="handleOp('+')" class="calc-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3.5 rounded-xl text-lg">+</button>
+
+        <button onclick="handleNum('0')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">0</button>
+        <button onclick="handleNum('.')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-xl">.</button>
+        <button onclick="handleBackspace()" class="calc-btn bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3.5 rounded-xl text-lg"><i class="fa-solid fa-backspace"></i></button>
+        <button onclick="handleEquals()" class="calc-btn bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl text-xl shadow-md shadow-emerald-500/20">=</button>
+      </div>
+
+      <!-- SCIENTIFIC KEYPAD -->
+      <div id="scientificKeypad" class="hidden grid grid-cols-5 gap-1.5 sm:gap-2">
+        <button onclick="handleFunc('sin')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-xs sm:text-sm">sin</button>
+        <button onclick="handleFunc('cos')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-xs sm:text-sm">cos</button>
+        <button onclick="handleFunc('tan')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-xs sm:text-sm">tan</button>
+        <button onclick="handleFunc('log')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-xs sm:text-sm">log</button>
+        <button onclick="handleFunc('ln')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-xs sm:text-sm">ln</button>
+
+        <button onclick="handleFunc('sqrt')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-xs sm:text-sm">√</button>
+        <button onclick="handleOp('^')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-xs sm:text-sm">x^y</button>
+        <button onclick="handleConst('pi')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-xs sm:text-sm">π</button>
+        <button onclick="handleConst('e')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-xs sm:text-sm">e</button>
+        <button onclick="handleClear()" class="calc-btn bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 rounded-lg text-xs sm:text-sm">C</button>
+
+        <button onclick="handleNum('7')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">7</button>
+        <button onclick="handleNum('8')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">8</button>
+        <button onclick="handleNum('9')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">9</button>
+        <button onclick="handleOp('(')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-base">(</button>
+        <button onclick="handleOp(')')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-base">)</button>
+
+        <button onclick="handleNum('4')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">4</button>
+        <button onclick="handleNum('5')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">5</button>
+        <button onclick="handleNum('6')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">6</button>
+        <button onclick="handleOp('*')" class="calc-btn bg-blue-500 text-white font-bold py-3 rounded-lg text-base">×</button>
+        <button onclick="handleOp('/')" class="calc-btn bg-blue-500 text-white font-bold py-3 rounded-lg text-base">÷</button>
+
+        <button onclick="handleNum('1')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">1</button>
+        <button onclick="handleNum('2')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">2</button>
+        <button onclick="handleNum('3')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">3</button>
+        <button onclick="handleOp('+')" class="calc-btn bg-blue-500 text-white font-bold py-3 rounded-lg text-base">+</button>
+        <button onclick="handleOp('-')" class="calc-btn bg-blue-500 text-white font-bold py-3 rounded-lg text-base">−</button>
+
+        <button onclick="handleNum('0')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">0</button>
+        <button onclick="handleNum('.')" class="calc-btn bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base">.</button>
+        <button onclick="handleFunc('fact')" class="calc-btn bg-blue-100 dark:bg-slate-700 text-blue-900 dark:text-blue-200 font-bold py-3 rounded-lg text-xs sm:text-sm">n!</button>
+        <button onclick="handleBackspace()" class="calc-btn bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3 rounded-lg text-base"><i class="fa-solid fa-backspace"></i></button>
+        <button onclick="handleEquals()" class="calc-btn bg-emerald-500 text-white font-bold py-3 rounded-lg text-base shadow-md shadow-emerald-500/20">=</button>
+      </div>
+
+      <!-- CURRENCY CONVERTER PANEL -->
+      <div id="currencyPanel" class="hidden flex flex-col gap-4">
+
+        <!-- From Currency Field -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">Amount & From Currency</label>
+          <div class="flex items-center gap-2">
+            <input type="number" id="fromAmount" value="1" min="0" step="any" oninput="convertCurrency()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-3 text-lg font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 transition">
+            
+            <div class="flex items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 shrink-0">
+              <img id="fromFlag" src="https://flagcdn.com/w40/us.png" alt="US Flag" class="w-6 h-4 object-cover rounded shadow-sm">
+              <select id="fromCurrency" onchange="updateCurrencyFlags(); convertCurrency();" class="bg-transparent font-bold text-slate-800 dark:text-slate-100 text-sm pl-2 pr-1 outline-none cursor-pointer">
+                <option value="USD" selected>USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="INR">INR</option>
+                <option value="JPY">JPY</option>
+                <option value="CAD">CAD</option>
+                <option value="AUD">AUD</option>
+                <option value="CNY">CNY</option>
+                <option value="AED">AED</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Swap Currencies Button -->
+        <div class="flex justify-center my-1">
+          <button onclick="swapCurrencies()" class="bg-blue-50 dark:bg-slate-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-600 font-semibold px-4 py-2 rounded-full text-xs flex items-center gap-2 transition shadow-sm">
+            <i class="fa-solid fa-arrows-rotate"></i> Swap Currencies
+          </button>
+        </div>
+
+        <!-- To Currency Field -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-semibold text-slate-500 dark:text-slate-400">Converted Amount & To Currency</label>
+          <div class="flex items-center gap-2">
+            <input type="text" id="toAmount" readonly class="w-full bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-3 text-lg font-bold text-emerald-600 dark:text-emerald-400 outline-none cursor-default">
+            
+            <div class="flex items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 shrink-0">
+              <img id="toFlag" src="https://flagcdn.com/w40/in.png" alt="India Flag" class="w-6 h-4 object-cover rounded shadow-sm">
+              <select id="toCurrency" onchange="updateCurrencyFlags(); convertCurrency();" class="bg-transparent font-bold text-slate-800 dark:text-slate-100 text-sm pl-2 pr-1 outline-none cursor-pointer">
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="INR" selected>INR</option>
+                <option value="JPY">JPY</option>
+                <option value="CAD">CAD</option>
+                <option value="AUD">AUD</option>
+                <option value="CNY">CNY</option>
+                <option value="AED">AED</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exchange Rate Info -->
+        <div class="text-center mt-2">
+          <span id="rateInfo" class="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+            Fetching exchange rate...
+          </span>
+        </div>
+
+      </div>
+
     </div>
+
   </div>
 
-  <script src="script.js"></script>
+  <script>
+    // State variables
+    let currentMode = 'basic';
+    let currentExpr = '';
+    let lastAnswer = null;
+    let history = [];
+
+    // Currency code to Flag mapping
+    const currencyFlags = {
+      USD: 'us',
+      EUR: 'eu',
+      GBP: 'gb',
+      INR: 'in',
+      JPY: 'jp',
+      CAD: 'ca',
+      AUD: 'au',
+      CNY: 'cn',
+      AED: 'ae'
+    };
+
+    // Static fallback rates relative to 1 USD
+    const fallbackRates = {
+      USD: 1.0,
+      EUR: 0.92,
+      GBP: 0.79,
+      INR: 83.45,
+      JPY: 155.20,
+      CAD: 1.36,
+      AUD: 1.51,
+      CNY: 7.23,
+      AED: 3.67
+    };
+
+    // Initialize Theme Setup
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+      themeIcon.className = 'fa-solid fa-sun text-lg';
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      themeIcon.className = isDark ? 'fa-solid fa-sun text-lg' : 'fa-solid fa-moon text-lg';
+    });
+
+    function switchMode(mode) {
+      currentMode = mode;
+      
+      const tabBasic = document.getElementById('tab-basic');
+      const tabScientific = document.getElementById('tab-scientific');
+      const tabCurrency = document.getElementById('tab-currency');
+
+      const calcDisplayPanel = document.getElementById('calculatorDisplayPanel');
+      const basicKeypad = document.getElementById('basicKeypad');
+      const scientificKeypad = document.getElementById('scientificKeypad');
+      const currencyPanel = document.getElementById('currencyPanel');
+
+      const tabs = [
+        { id: 'basic', el: tabBasic },
+        { id: 'scientific', el: tabScientific },
+        { id: 'currency', el: tabCurrency }
+      ];
+
+      // Update vertical tab styles
+      tabs.forEach(tab => {
+        if (tab.id === mode) {
+          tab.el.className = 'mode-tab active w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2.5 shadow-md shadow-blue-600/25 transition-all text-sm sm:text-base';
+        } else {
+          tab.el.className = 'mode-tab w-full bg-blue-50 dark:bg-slate-700/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2.5 transition-all text-sm sm:text-base';
+        }
+      });
+
+      // Toggle visible view
+      if (mode === 'currency') {
+        calcDisplayPanel.classList.add('hidden');
+        basicKeypad.classList.add('hidden');
+        scientificKeypad.classList.add('hidden');
+        currencyPanel.classList.remove('hidden');
+        convertCurrency();
+      } else {
+        calcDisplayPanel.classList.remove('hidden');
+        currencyPanel.classList.add('hidden');
+
+        if (mode === 'basic') {
+          basicKeypad.classList.remove('hidden');
+          scientificKeypad.classList.add('hidden');
+        } else {
+          basicKeypad.classList.add('hidden');
+          scientificKeypad.classList.remove('hidden');
+        }
+      }
+    }
+
+    // Calculator Operations
+    function updateDisplay() {
+      const exprEl = document.getElementById('expressionDisplay');
+      const resEl = document.getElementById('resultDisplay');
+
+      exprEl.textContent = currentExpr;
+
+      if (!currentExpr) {
+        resEl.textContent = '0';
+        return;
+      }
+
+      try {
+        // Safe evaluation display calculation
+        const sanitized = sanitizeExpression(currentExpr);
+        const evalRes = eval(sanitized);
+        if (evalRes !== undefined && !isNaN(evalRes) && isFinite(evalRes)) {
+          resEl.textContent = Number(evalRes.toFixed(8)).toString();
+        }
+      } catch (e) {
+        // Silent catch while typing
+      }
+    }
+
+    function handleNum(num) {
+      currentExpr += num;
+      updateDisplay();
+    }
+
+    function handleOp(op) {
+      if (!currentExpr && op !== '(') return;
+      currentExpr += op;
+      updateDisplay();
+    }
+
+    function handleConst(c) {
+      if (c === 'pi') currentExpr += 'Math.PI';
+      if (c === 'e') currentExpr += 'Math.E';
+      updateDisplay();
+    }
+
+    function handleFunc(fn) {
+      if (fn === 'sqrt') currentExpr += 'Math.sqrt(';
+      else if (fn === 'sin') currentExpr += 'Math.sin(';
+      else if (fn === 'cos') currentExpr += 'Math.cos(';
+      else if (fn === 'tan') currentExpr += 'Math.tan(';
+      else if (fn === 'log') currentExpr += 'Math.log10(';
+      else if (fn === 'ln') currentExpr += 'Math.log(';
+      else if (fn === 'fact') currentExpr += 'factorial(';
+      updateDisplay();
+    }
+
+    function handleParentheses() {
+      const openCount = (currentExpr.match(/\(/g) || []).length;
+      const closeCount = (currentExpr.match(/\)/g) || []).length;
+
+      if (openCount > closeCount && /[0-9\)\.]/.test(currentExpr.slice(-1))) {
+        currentExpr += ')';
+      } else {
+        currentExpr += '(';
+      }
+      updateDisplay();
+    }
+
+    function handleClear() {
+      currentExpr = '';
+      document.getElementById('expressionDisplay').textContent = '';
+      document.getElementById('resultDisplay').textContent = '0';
+    }
+
+    function clearCurrentEntry() {
+      handleClear();
+    }
+
+    function handleBackspace() {
+      currentExpr = currentExpr.slice(0, -1);
+      updateDisplay();
+    }
+
+    function factorial(n) {
+      if (n < 0) return NaN;
+      if (n === 0 || n === 1) return 1;
+      let res = 1;
+      for (let i = 2; i <= n; i++) res *= i;
+      return res;
+    }
+
+    function sanitizeExpression(expr) {
+      return expr
+        .replace(/÷/g, '/')
+        .replace(/×/g, '*')
+        .replace(/−/g, '-')
+        .replace(/\^/g, '**');
+    }
+
+    function handleEquals() {
+      if (!currentExpr) return;
+      try {
+        const sanitized = sanitizeExpression(currentExpr);
+        const calcResult = eval(sanitized);
+
+        if (isNaN(calcResult) || !isFinite(calcResult)) {
+          document.getElementById('resultDisplay').textContent = 'Error';
+          return;
+        }
+
+        const finalResult = Number(calcResult.toFixed(8)).toString();
+        addHistory(currentExpr, finalResult);
+
+        document.getElementById('expressionDisplay').textContent = currentExpr + ' =';
+        document.getElementById('resultDisplay').textContent = finalResult;
+        currentExpr = finalResult;
+      } catch (err) {
+        document.getElementById('resultDisplay').textContent = 'Error';
+      }
+    }
+
+    function addHistory(expr, result) {
+      history.unshift({ expr, result });
+      if (history.length > 20) history.pop();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const historyList = document.getElementById('historyList');
+      if (history.length === 0) {
+        historyList.innerHTML = '<li class="text-slate-400 italic text-center py-2">No past calculations</li>';
+        return;
+      }
+
+      historyList.innerHTML = history.map(item => `
+        <li class="flex items-center justify-between py-1 px-2 hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded cursor-pointer transition" onclick="useHistoryResult('${item.result}')">
+          <span class="text-slate-500 dark:text-slate-400 font-mono">${item.expr}</span>
+          <span class="font-bold text-slate-800 dark:text-slate-200 font-mono">= ${item.result}</span>
+        </li>
+      `).join('');
+    }
+
+    function useHistoryResult(res) {
+      currentExpr = res;
+      updateDisplay();
+    }
+
+    function clearHistory() {
+      history = [];
+      renderHistory();
+    }
+
+    function toggleHistoryPanel() {
+      const panel = document.getElementById('historyPanel');
+      const text = document.getElementById('historyToggleText');
+      if (panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        text.textContent = 'Hide History';
+      } else {
+        panel.classList.add('hidden');
+        text.textContent = 'Show History';
+      }
+    }
+
+    function updateCurrencyFlags() {
+      const fromVal = document.getElementById('fromCurrency').value;
+      const toVal = document.getElementById('toCurrency').value;
+
+      document.getElementById('fromFlag').src = `https://flagcdn.com/w40/${currencyFlags[fromVal]}.png`;
+      document.getElementById('toFlag').src = `https://flagcdn.com/w40/${currencyFlags[toVal]}.png`;
+    }
+
+    async function convertCurrency() {
+      const amount = parseFloat(document.getElementById('fromAmount').value) || 0;
+      const fromCurr = document.getElementById('fromCurrency').value;
+      const toCurr = document.getElementById('toCurrency').value;
+      const toAmountInput = document.getElementById('toAmount');
+      const rateInfo = document.getElementById('rateInfo');
+
+      try {
+        const response = await fetch(`https://open.er-api.com/v6/latest/${fromCurr}`);
+        const data = await response.json();
+
+        if (data && data.rates && data.rates[toCurr]) {
+          const rate = data.rates[toCurr];
+          const converted = (amount * rate).toFixed(2);
+          toAmountInput.value = `${converted} ${toCurr}`;
+          rateInfo.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Live rate: 1 ${fromCurr} = ${rate.toFixed(4)} ${toCurr}`;
+          return;
+        }
+      } catch (err) {
+        // Fallback calculations when offline or network fails
+      }
+
+      // Static Fallback calculations
+      const rateFromUSD = fallbackRates[fromCurr] || 1;
+      const rateToUSD = fallbackRates[toCurr] || 1;
+      const convertedRate = (1 / rateFromUSD) * rateToUSD;
+      const convertedValue = (amount * convertedRate).toFixed(2);
+
+      toAmountInput.value = `${convertedValue} ${toCurr}`;
+      rateInfo.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> Standard rate: 1 ${fromCurr} = ${convertedRate.toFixed(4)} ${toCurr}`;
+    }
+
+    function swapCurrencies() {
+      const fromSelect = document.getElementById('fromCurrency');
+      const toSelect = document.getElementById('toCurrency');
+
+      const temp = fromSelect.value;
+      fromSelect.value = toSelect.value;
+      toSelect.value = temp;
+
+      updateCurrencyFlags();
+      convertCurrency();
+    }
+
+    // Keyboard support
+    window.addEventListener('keydown', (e) => {
+      if (currentMode === 'currency') return;
+
+      if (e.key >= '0' && e.key <= '9') handleNum(e.key);
+      else if (e.key === '.') handleNum('.');
+      else if (e.key === '+') handleOp('+');
+      else if (e.key === '-') handleOp('-');
+      else if (e.key === '*') handleOp('*');
+      else if (e.key === '/') handleOp('/');
+      else if (e.key === '%') handleOp('%');
+      else if (e.key === '(' || e.key === ')') handleOp(e.key);
+      else if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); handleEquals(); }
+      else if (e.key === 'Backspace') handleBackspace();
+      else if (e.key === 'Escape') handleClear();
+    });
+
+    // On Load initialization
+    window.onload = function() {
+      updateCurrencyFlags();
+    };
+  </script>
 </body>
 </html>
