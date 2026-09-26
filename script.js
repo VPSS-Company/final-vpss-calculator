@@ -1,221 +1,253 @@
+// State Management
 let currentMode = 'basic';
-let currentExpr = '';
-let currentVal = '0';
+let currentInput = '0';
+let expression = '';
+let isEvaluated = false;
 let history = [];
-let shouldResetVal = false;
 
-// Memory cache for live rates per base currency
-const liveRatesCache = {};
-
-// Flag mapping table with SVG flags
-const currencyFlags = {
-  USD: 'https://flagcdn.com/w40/us.png',
-  EUR: 'https://flagcdn.com/w40/eu.png',
-  GBP: 'https://flagcdn.com/w40/gb.png',
-  INR: 'https://flagcdn.com/w40/in.png',
-  JPY: 'https://flagcdn.com/w40/jp.png',
-  CAD: 'https://flagcdn.com/w40/ca.png',
-  AUD: 'https://flagcdn.com/w40/au.png',
-  AED: 'https://flagcdn.com/w40/ae.png',
-  SGD: 'https://flagcdn.com/w40/sg.png',
-  CNY: 'https://flagcdn.com/w40/cn.png'
+// Currency Converter State
+let exchangeRates = { USD: 1, EUR: 0.92, GBP: 0.79, INR: 83.5, JPY: 155.2 };
+let currencyFlags = {
+  USD: 'us',
+  EUR: 'eu',
+  GBP: 'gb',
+  INR: 'in',
+  JPY: 'jp'
 };
+let fromCurrency = 'USD';
+let toCurrency = 'INR';
+let fromAmount = 1;
 
-window.onload = () => {
-  renderBasicKeypad();
-};
+// Initialize App
+document.addEventListener('DOMContentLoaded', () => {
+  renderKeypad();
+  fetchExchangeRates();
+});
 
+// Switch Between Modes
 function switchMode(mode) {
   currentMode = mode;
-  document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
-    btn.classList.toggle('active', 
-      (mode === 'basic' && idx === 0) || 
-      (mode === 'scientific' && idx === 1) || 
-      (mode === 'currency' && idx === 2)
-    );
-  });
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  
+  if (mode === 'basic') document.getElementById('btnBasic').classList.add('active');
+  if (mode === 'scientific') document.getElementById('btnScientific').classList.add('active');
+  if (mode === 'currency') document.getElementById('btnCurrency').classList.add('active');
 
   const mainLayout = document.getElementById('mainLayout');
-  const historyPanel = document.getElementById('historyPanel');
   const calcDisplay = document.getElementById('calcDisplay');
+  const historyCard = document.getElementById('historyCard');
 
+  // History panel displays ONLY for 'basic' mode
   if (mode === 'basic') {
+    calcDisplay.style.display = 'flex';
+    historyCard.style.display = 'flex';
     mainLayout.classList.add('has-history');
-    historyPanel.style.display = 'flex';
-    calcDisplay.style.display = 'flex';
-    renderBasicKeypad();
   } else if (mode === 'scientific') {
-    mainLayout.classList.remove('has-history');
-    historyPanel.style.display = 'none';
     calcDisplay.style.display = 'flex';
-    renderScientificKeypad();
-  } else if (mode === 'currency') {
+    historyCard.style.display = 'none';
     mainLayout.classList.remove('has-history');
-    historyPanel.style.display = 'none';
+  } else { // currency
     calcDisplay.style.display = 'none';
-    renderCurrencyConverter();
+    historyCard.style.display = 'none';
+    mainLayout.classList.remove('has-history');
+  }
+
+  resetCalc();
+  renderKeypad();
+}
+
+// Keypad Configurations
+function renderKeypad() {
+  const container = document.getElementById('keypadContainer');
+  container.className = '';
+
+  if (currentMode === 'basic') {
+    container.className = 'keypad keypad-basic';
+    container.innerHTML = `
+      <button class="btn btn-clear" onclick="handleInput('AC')">AC</button>
+      <button class="btn btn-clear" onclick="handleInput('DEL')">DEL</button>
+      <button class="btn btn-op" onclick="handleInput('%')">%</button>
+      <button class="btn btn-op" onclick="handleInput('/')">&divide;</button>
+      <button class="btn" onclick="handleInput('7')">7</button>
+      <button class="btn" onclick="handleInput('8')">8</button>
+      <button class="btn" onclick="handleInput('9')">9</button>
+      <button class="btn btn-op" onclick="handleInput('*')">&times;</button>
+      <button class="btn" onclick="handleInput('4')">4</button>
+      <button class="btn" onclick="handleInput('5')">5</button>
+      <button class="btn" onclick="handleInput('6')">6</button>
+      <button class="btn btn-op" onclick="handleInput('-')">-</button>
+      <button class="btn" onclick="handleInput('1')">1</button>
+      <button class="btn" onclick="handleInput('2')">2</button>
+      <button class="btn" onclick="handleInput('3')">3</button>
+      <button class="btn btn-op" onclick="handleInput('+')">+</button>
+      <button class="btn span-2" onclick="handleInput('0')">0</button>
+      <button class="btn" onclick="handleInput('.')">.</button>
+      <button class="btn btn-equals" onclick="handleInput('=')">=</button>
+    `;
+  } else if (currentMode === 'scientific') {
+    container.className = 'keypad keypad-scientific';
+    container.innerHTML = `
+      <button class="btn btn-op" onclick="handleInput('sin')">sin</button>
+      <button class="btn btn-op" onclick="handleInput('cos')">cos</button>
+      <button class="btn btn-op" onclick="handleInput('tan')">tan</button>
+      <button class="btn btn-clear" onclick="handleInput('AC')">AC</button>
+      <button class="btn btn-clear" onclick="handleInput('DEL')">DEL</button>
+      <button class="btn btn-op" onclick="handleInput('sqrt')">&radic;</button>
+      <button class="btn btn-op" onclick="handleInput('pow')">x&sup2;</button>
+      <button class="btn btn-op" onclick="handleInput('pi')">&pi;</button>
+      <button class="btn btn-op" onclick="handleInput('(')">(</button>
+      <button class="btn btn-op" onclick="handleInput(')')">)</button>
+      <button class="btn" onclick="handleInput('7')">7</button>
+      <button class="btn" onclick="handleInput('8')">8</button>
+      <button class="btn" onclick="handleInput('9')">9</button>
+      <button class="btn btn-op" onclick="handleInput('%')">%</button>
+      <button class="btn btn-op" onclick="handleInput('/')">&divide;</button>
+      <button class="btn" onclick="handleInput('4')">4</button>
+      <button class="btn" onclick="handleInput('5')">5</button>
+      <button class="btn" onclick="handleInput('6')">6</button>
+      <button class="btn btn-op" onclick="handleInput('*')">&times;</button>
+      <button class="btn btn-op" onclick="handleInput('-')">-</button>
+      <button class="btn" onclick="handleInput('1')">1</button>
+      <button class="btn" onclick="handleInput('2')">2</button>
+      <button class="btn" onclick="handleInput('3')">3</button>
+      <button class="btn btn-op" onclick="handleInput('+')">+</button>
+      <button class="btn btn-equals" onclick="handleInput('=')">=</button>
+      <button class="btn span-2" onclick="handleInput('0')">0</button>
+      <button class="btn" onclick="handleInput('.')">.</button>
+    `;
+  } else if (currentMode === 'currency') {
+    container.className = 'currency-panel';
+    renderCurrencyUI();
   }
 }
 
-function renderBasicKeypad() {
-  const container = document.getElementById('keypadContainer');
-  container.className = 'keypad keypad-basic';
-  container.innerHTML = `
-    <button class="btn btn-clear" onclick="clearCalc()">C</button>
-    <button class="btn" onclick="toggleSign()">+/-</button>
-    <button class="btn" onclick="appendInput('%')">%</button>
-    <button class="btn btn-op" onclick="appendInput('÷')">÷</button>
-
-    <button class="btn" onclick="appendInput('7')">7</button>
-    <button class="btn" onclick="appendInput('8')">8</button>
-    <button class="btn" onclick="appendInput('9')">9</button>
-    <button class="btn btn-op" onclick="appendInput('×')">×</button>
-
-    <button class="btn" onclick="appendInput('4')">4</button>
-    <button class="btn" onclick="appendInput('5')">5</button>
-    <button class="btn" onclick="appendInput('6')">6</button>
-    <button class="btn btn-op" onclick="appendInput('-')">-</button>
-
-    <button class="btn" onclick="appendInput('1')">1</button>
-    <button class="btn" onclick="appendInput('2')">2</button>
-    <button class="btn" onclick="appendInput('3')">3</button>
-    <button class="btn btn-op" onclick="appendInput('+')">+</button>
-
-    <button class="btn span-2" onclick="appendInput('0')">0</button>
-    <button class="btn" onclick="appendInput('.')">.</button>
-    <button class="btn btn-equals" onclick="calculateResult()">=</button>
-  `;
-}
-
-function renderScientificKeypad() {
-  const container = document.getElementById('keypadContainer');
-  container.className = 'keypad keypad-scientific';
-  container.innerHTML = `
-    <button class="btn" onclick="appendFunc('sin')">sin</button>
-    <button class="btn" onclick="appendFunc('cos')">cos</button>
-    <button class="btn" onclick="appendFunc('tan')">tan</button>
-    <button class="btn btn-clear" onclick="clearCalc()">C</button>
-    <button class="btn btn-op" onclick="appendInput('÷')">÷</button>
-
-    <button class="btn" onclick="appendFunc('log')">log</button>
-    <button class="btn" onclick="appendFunc('ln')">ln</button>
-    <button class="btn" onclick="appendInput('(')">(</button>
-    <button class="btn" onclick="appendInput(')')">)</button>
-    <button class="btn btn-op" onclick="appendInput('×')">×</button>
-
-    <button class="btn" onclick="appendFunc('sqrt')">√</button>
-    <button class="btn" onclick="appendInput('7')">7</button>
-    <button class="btn" onclick="appendInput('8')">8</button>
-    <button class="btn" onclick="appendInput('9')">9</button>
-    <button class="btn btn-op" onclick="appendInput('-')">-</button>
-
-    <button class="btn" onclick="appendInput('^')">x^y</button>
-    <button class="btn" onclick="appendInput('4')">4</button>
-    <button class="btn" onclick="appendInput('5')">5</button>
-    <button class="btn" onclick="appendInput('6')">6</button>
-    <button class="btn btn-op" onclick="appendInput('+')">+</button>
-
-    <button class="btn" onclick="appendInput('π')">π</button>
-    <button class="btn" onclick="appendInput('1')">1</button>
-    <button class="btn" onclick="appendInput('2')">2</button>
-    <button class="btn" onclick="appendInput('3')">3</button>
-    <button class="btn btn-equals span-2" style="grid-row: span 2;" onclick="calculateResult()">=</button>
-
-    <button class="btn" onclick="appendInput('e')">e</button>
-    <button class="btn span-2" onclick="appendInput('0')">0</button>
-    <button class="btn" onclick="appendInput('.')">.</button>
-  `;
-}
-
-function appendInput(char) {
-  if (shouldResetVal) {
-    currentVal = '';
-    shouldResetVal = false;
-  }
-  if (currentVal === '0' && char !== '.') {
-    currentVal = char;
+// Handle Calculator Inputs
+function handleInput(val) {
+  if (val === 'AC') {
+    resetCalc();
+  } else if (val === 'DEL') {
+    if (isEvaluated) {
+      resetCalc();
+    } else {
+      currentInput = currentInput.slice(0, -1);
+      if (currentInput === '' || currentInput === '-') currentInput = '0';
+    }
+  } else if (val === '=') {
+    calculateResult();
+  } else if (['+', '-', '*', '/', '%'].includes(val)) {
+    if (isEvaluated) isEvaluated = false;
+    expression += currentInput + ' ' + val + ' ';
+    currentInput = '0';
+  } else if (['sin', 'cos', 'tan', 'sqrt', 'pow', 'pi'].includes(val)) {
+    applyScientificFunction(val);
   } else {
-    currentVal += char;
+    if (currentInput === '0' || isEvaluated) {
+      currentInput = val;
+      isEvaluated = false;
+    } else {
+      currentInput += val;
+    }
   }
   updateDisplay();
 }
 
-function appendFunc(funcName) {
-  if (shouldResetVal) {
-    currentVal = '';
-    shouldResetVal = false;
+function applyScientificFunction(fn) {
+  let num = parseFloat(currentInput);
+  if (isNaN(num)) return;
+
+  let res = 0;
+  let exprStr = '';
+
+  switch (fn) {
+    case 'sin':
+      res = Math.sin((num * Math.PI) / 180);
+      exprStr = `sin(${num})`;
+      break;
+    case 'cos':
+      res = Math.cos((num * Math.PI) / 180);
+      exprStr = `cos(${num})`;
+      break;
+    case 'tan':
+      res = Math.tan((num * Math.PI) / 180);
+      exprStr = `tan(${num})`;
+      break;
+    case 'sqrt':
+      res = Math.sqrt(num);
+      exprStr = `&radic;(${num})`;
+      break;
+    case 'pow':
+      res = Math.pow(num, 2);
+      exprStr = `${num}&sup2;`;
+      break;
+    case 'pi':
+      res = Math.PI;
+      exprStr = '&pi;';
+      break;
   }
-  currentVal += funcName + '(';
-  updateDisplay();
-}
 
-function clearCalc() {
-  currentVal = '0';
-  currentExpr = '';
-  shouldResetVal = false;
-  updateDisplay();
-}
-
-function toggleSign() {
-  if (currentVal !== '0') {
-    currentVal = currentVal.startsWith('-') ? currentVal.substring(1) : '-' + currentVal;
-    updateDisplay();
-  }
-}
-
-function updateDisplay() {
-  document.getElementById('currentVal').innerText = currentVal || '0';
-  document.getElementById('expression').innerText = currentExpr;
+  res = Number(res.toFixed(8));
+  if (currentMode === 'basic') addHistory(exprStr, res);
+  currentInput = String(res);
+  isEvaluated = true;
 }
 
 function calculateResult() {
+  if (!expression && !currentInput) return;
+  let fullExpr = expression + currentInput;
   try {
-    let parsedExpr = currentVal
-      .replace(/×/g, '*')
-      .replace(/÷/g, '/')
-      .replace(/π/g, 'Math.PI')
-      .replace(/e/g, 'Math.E')
-      .replace(/sin\(/g, 'Math.sin(')
-      .replace(/cos\(/g, 'Math.cos(')
-      .replace(/tan\(/g, 'Math.tan(')
-      .replace(/log\(/g, 'Math.log10(')
-      .replace(/ln\(/g, 'Math.log(')
-      .replace(/sqrt\(/g, 'Math.sqrt(')
-      .replace(/\^/g, '**');
+    let sanitizeExpr = fullExpr.replace(/&times;/g, '*').replace(/&divide;/g, '/');
+    let res = eval(sanitizeExpr);
+    res = Number(res.toFixed(8));
 
-    let result = eval(parsedExpr);
-    if (typeof result === 'number') {
-      result = Math.round(result * 1e8) / 1e8;
-    }
-
+    // Only record history when using basic calculator
     if (currentMode === 'basic') {
-      addHistoryItem(currentVal, result);
+      addHistory(fullExpr, res);
     }
-
-    currentExpr = currentVal + ' =';
-    currentVal = String(result);
-    shouldResetVal = true;
-    updateDisplay();
+    
+    currentInput = String(res);
+    expression = '';
+    isEvaluated = true;
   } catch (e) {
-    currentVal = 'Error';
-    shouldResetVal = true;
-    updateDisplay();
+    currentInput = 'Error';
+    isEvaluated = true;
   }
 }
 
-function addHistoryItem(expr, result) {
-  history.unshift({ expr, result });
+function resetCalc() {
+  currentInput = '0';
+  expression = '';
+  isEvaluated = false;
+  updateDisplay();
+}
+
+function updateDisplay() {
+  const currentDisp = document.getElementById('currentDisplay');
+  const exprDisp = document.getElementById('exprDisplay');
+  if (currentDisp && exprDisp) {
+    currentDisp.innerText = currentInput;
+    exprDisp.innerHTML = expression;
+  }
+}
+
+// History Logic
+function addHistory(expr, res) {
+  history.unshift({ expr, res });
   renderHistory();
 }
 
 function renderHistory() {
   const list = document.getElementById('historyList');
-  list.innerHTML = history.map(item => `
+  if (!list) return;
+  list.innerHTML = history
+    .map(
+      (item) => `
     <li class="history-item">
-      <span class="expr">${item.expr}</span>
-      <span class="res">${item.result}</span>
+      <span class="expr">${item.expr} =</span>
+      <span class="res">${item.res}</span>
     </li>
-  `).join('');
+  `
+    )
+    .join('');
 }
 
 function clearHistory() {
@@ -223,140 +255,96 @@ function clearHistory() {
   renderHistory();
 }
 
-// --- CURRENCY CONVERTER LOGIC WITH FLAGS ---
-function renderCurrencyConverter() {
+// Currency Conversion Logic
+function renderCurrencyUI() {
   const container = document.getElementById('keypadContainer');
-  container.className = 'currency-panel';
-  
-  const currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'AED', 'SGD', 'CNY'];
+  const convertedVal = (
+    (fromAmount / exchangeRates[fromCurrency]) *
+    exchangeRates[toCurrency]
+  ).toFixed(2);
 
   container.innerHTML = `
     <div class="currency-group">
       <label>Amount & From Currency</label>
       <div class="currency-input-row">
-        <input type="number" id="curr-amount" value="1" oninput="convertCurrency()" />
+        <input type="number" value="${fromAmount}" id="fromAmountInput" oninput="updateFromAmount(this.value)">
         <div class="flag-select-wrapper">
-          <img id="from-flag" class="flag-img" src="${currencyFlags['USD']}" alt="USD" />
-          <select id="from-curr" onchange="updateFlags(); convertCurrency(true)">
-            ${currencies.map(c => `<option value="${c}" ${c === 'USD' ? 'selected' : ''}>${c}</option>`).join('')}
+          <img src="https://flagcdn.com/w40/${currencyFlags[fromCurrency]}.png" class="flag-img" id="fromFlag" alt="Flag">
+          <select id="fromCurrencySelect" onchange="updateCurrency('from', this.value)">
+            ${Object.keys(exchangeRates)
+              .map(
+                (c) =>
+                  `<option value="${c}" ${                     c === fromCurrency ? 'selected' : ''                   }>${c}</option>`
+              )
+              .join('')}
           </select>
         </div>
       </div>
     </div>
 
     <button class="swap-rates-btn" onclick="swapCurrencies()">
-      <i class="fa-solid fa-arrows-up-down"></i> Swap Currencies
+      <i class="fa-solid fa-arrows-rotate"></i> Swap Currencies
     </button>
 
     <div class="currency-group">
       <label>Converted Amount & Status</label>
       <div class="currency-input-row">
-        <input type="text" id="curr-result" readonly />
+        <input type="text" value="${convertedVal} ${toCurrency}" readonly>
         <div class="flag-select-wrapper">
-          <img id="to-flag" class="flag-img" src="${currencyFlags['INR']}" alt="INR" />
-          <select id="to-curr" onchange="updateFlags(); convertCurrency()">
-            ${currencies.map(c => `<option value="${c}" ${c === 'INR' ? 'selected' : ''}>${c}</option>`).join('')}
+          <img src="https://flagcdn.com/w40/${currencyFlags[toCurrency]}.png" class="flag-img" id="toFlag" alt="Flag">
+          <select id="toCurrencySelect" onchange="updateCurrency('to', this.value)">
+            ${Object.keys(exchangeRates)
+              .map(
+                (c) =>
+                  `<option value="${c}" ${                     c === toCurrency ? 'selected' : ''                   }>${c}</option>`
+              )
+              .join('')}
           </select>
         </div>
       </div>
     </div>
-
-    <div class="rate-time-info" id="rate-time-info">Live exchange rates active</div>
+    
+    <div class="rate-time-info" id="rateInfoText">
+      &bull; Live rate: 1 ${fromCurrency} = ${(
+    exchangeRates[toCurrency] / exchangeRates[fromCurrency]
+  ).toFixed(4)} ${toCurrency}
+    </div>
   `;
-
-  updateFlags();
-  convertCurrency();
 }
 
-function updateFlags() {
-  const from = document.getElementById('from-curr').value;
-  const to = document.getElementById('to-curr').value;
-  
-  document.getElementById('from-flag').src = currencyFlags[from] || '';
-  document.getElementById('to-flag').src = currencyFlags[to] || '';
+function updateFromAmount(val) {
+  fromAmount = parseFloat(val) || 0;
+  renderCurrencyUI();
+}
+
+function updateCurrency(type, code) {
+  if (type === 'from') fromCurrency = code;
+  if (type === 'to') toCurrency = code;
+  renderCurrencyUI();
 }
 
 function swapCurrencies() {
-  const fromSelect = document.getElementById('from-curr');
-  const toSelect = document.getElementById('to-curr');
-  const temp = fromSelect.value;
-  fromSelect.value = toSelect.value;
-  toSelect.value = temp;
-  
-  updateFlags();
-  convertCurrency(true);
+  let temp = fromCurrency;
+  fromCurrency = toCurrency;
+  toCurrency = temp;
+  renderCurrencyUI();
 }
 
-// --- DUAL API REAL-TIME FETCHING ---
-async function convertCurrency(forceFetch = false) {
-  const amtInput = document.getElementById('curr-amount');
-  const resultDisplay = document.getElementById('curr-result');
-  const fromSelect = document.getElementById('from-curr');
-  const toSelect = document.getElementById('to-curr');
-  const infoDisplay = document.getElementById('rate-time-info');
-
-  if (!amtInput || !resultDisplay) return;
-
-  const from = fromSelect.value;
-  const to = toSelect.value;
-  const amt = parseFloat(amtInput.value);
-
-  if (isNaN(amt) || amt <= 0) {
-    resultDisplay.value = "Enter valid amount";
-    return;
-  }
-
-  // Use in-memory cached rate if available
-  if (!forceFetch && liveRatesCache[from] && liveRatesCache[from][to]) {
-    const rate = liveRatesCache[from][to];
-    const finalRes = amt * rate;
-    resultDisplay.value = finalRes.toFixed(2) + " " + to;
-    return;
-  }
-
-  resultDisplay.value = "Fetching live rate...";
-
+async function fetchExchangeRates() {
   try {
-    let response = await fetch(`https://open.er-api.com/v6/latest/${from}`);
-    let data;
-
-    if (response.ok) {
-      data = await response.json();
-    } else {
-      response = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
-      data = await response.json();
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    const data = await res.json();
+    if (data && data.rates) {
+      exchangeRates = {
+        USD: data.rates.USD || 1,
+        EUR: data.rates.EUR || 0.92,
+        GBP: data.rates.GBP || 0.79,
+        INR: data.rates.INR || 83.5,
+        JPY: data.rates.JPY || 155.2
+      };
+      if (currentMode === 'currency') renderCurrencyUI();
     }
-
-    if (data && data.rates && data.rates[to]) {
-      const rate = data.rates[to];
-      liveRatesCache[from] = data.rates;
-
-      const finalRes = amt * rate;
-      resultDisplay.value = finalRes.toFixed(2) + " " + to;
-      if (infoDisplay) infoDisplay.innerHTML = `<span style="color:#10b981;">●</span> Live rate: 1 ${from} = ${rate.toFixed(4)} ${to}`;
-    } else {
-      throw new Error("Invalid rate data structure");
-    }
-  } catch (error) {
-    console.warn("Live API fetch failed. Using fallback calculation...", error);
-
-    const defaultUSDConversion = { 
-      USD: 1.0, 
-      EUR: 0.87, 
-      GBP: 0.75, 
-      INR: 95.8, 
-      JPY: 150.0, 
-      CAD: 1.35, 
-      AUD: 1.48, 
-      AED: 3.67, 
-      SGD: 1.30, 
-      CNY: 7.10 
-    };
-
-    const inUSD = amt / (defaultUSDConversion[from] || 1);
-    const fallbackRes = inUSD * (defaultUSDConversion[to] || 1);
-
-    resultDisplay.value = fallbackRes.toFixed(2) + " " + to + " (offline)";
-    if (infoDisplay) infoDisplay.innerHTML = `<span style="color:#ef4444;">●</span> Offline estimation`;
+  } catch (err) {
+    console.warn('Using fallback exchange rates.');
   }
 }
