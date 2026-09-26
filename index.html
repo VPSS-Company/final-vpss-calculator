@@ -4,64 +4,74 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VPSS Calculator</title>
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="icon" href="data:,">
-  <!-- External Resources: FontAwesome Icons & Google Fonts -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- External CSS -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="styles.css" />
+  <!-- FontAwesome for Icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  />
+  <!-- Google Fonts: Inter -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
 </head>
 <body>
-
   <div class="app-container">
+    <!-- Header -->
     <header class="header">
-      <div class="logo-icon"><i class="fa-solid fa-calculator"></i></div>
+      <div class="logo-icon">
+        <i class="fa-solid fa-calculator"></i>
+      </div>
       <div class="title-area">
         <h1>VPSS Calculator</h1>
-        <p>Calculate · Convert · Simplify</p>
+        <p>Calculate &bull; Convert &bull; Simplify</p>
       </div>
     </header>
 
-    <!-- Outer Rounded Edge Box Containing All 3 Options -->
+    <!-- Outer Enclosing Box -->
     <div class="outer-box">
+      <!-- Vertically Stacked Calculator Selector -->
       <nav class="tabs-container">
-        <button class="tab-btn active" onclick="switchMode('basic')">
+        <button class="tab-btn active" id="btnBasic" onclick="switchMode('basic')">
           <i class="fa-solid fa-calculator"></i> Basic
         </button>
-        <button class="tab-btn" onclick="switchMode('scientific')">
+        <button class="tab-btn" id="btnScientific" onclick="switchMode('scientific')">
           <i class="fa-solid fa-flask"></i> Scientific
         </button>
-        <button class="tab-btn" onclick="switchMode('currency')">
-          <i class="fa-solid fa-money-bill-wave"></i> Currency Converter
+        <button class="tab-btn" id="btnCurrency" onclick="switchMode('currency')">
+          <i class="fa-solid fa-money-bill-transfer"></i> Currency Converter
         </button>
       </nav>
 
+      <!-- Main Layout -->
       <main id="mainLayout" class="main-content has-history">
+        <!-- Calculator & Converter Card -->
         <div class="card" id="calculatorCard">
+          <!-- Display Area (for Basic and Scientific) -->
           <div class="display" id="calcDisplay">
-            <div class="expression" id="expression">0</div>
-            <div class="current-value" id="currentVal">0</div>
+            <div class="expression" id="exprDisplay"></div>
+            <div class="current-value" id="currentDisplay">0</div>
           </div>
 
+          <!-- Dynamic Keypad Container -->
           <div id="keypadContainer"></div>
         </div>
 
-        <div class="card history-panel" id="historyPanel">
+        <!-- History Side Panel (Only visible in Basic mode) -->
+        <aside class="card history-panel" id="historyCard">
           <div class="history-header">
-            <h2><i class="fa-regular fa-clock"></i> History</h2>
+            <h2><i class="fa-solid fa-clock-rotate-left"></i> History</h2>
             <button class="clear-history-btn" onclick="clearHistory()">
-              <i class="fa-regular fa-trash-can"></i> Clear All
+              <i class="fa-solid fa-trash-can"></i> Clear
             </button>
           </div>
           <ul class="history-list" id="historyList"></ul>
-        </div>
+        </aside>
       </main>
     </div>
   </div>
 
-  <!-- External JavaScript -->
   <script src="script.js"></script>
 </body>
 </html>
